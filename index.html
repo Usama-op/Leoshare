@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LioShare">
+<meta name="description" content="LioShare — Ultra-fast P2P file sharing via WebRTC">
+<!-- GitHub Pages: SW registered via /sw.js (same-origin, proper scope) -->
+<link rel="manifest" href="manifest.json">
+<title>LioShare</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+:root{--bg:#0a0a0f;--surface:#111118;--s2:#1a1a26;--border:rgba(0,245,196,.15);--accent:#00f5c4;--a2:#7c3aff;--a3:#ff3a6e;--text:#e8e8f0;--muted:#6b6b8a}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden;font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 80% 50% at 20% 0%,rgba(0,245,196,.07) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 100%,rgba(124,58,255,.07) 0%,transparent 60%)}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.02;background-image:linear-gradient(rgba(0,245,196,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,196,.5) 1px,transparent 1px);background-size:44px 44px}
+.app{position:relative;z-index:1;min-height:100dvh;display:flex;flex-direction:column}
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:rgba(10,10,15,.9);backdrop-filter:blur(20px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:800;letter-spacing:-.5px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--a2));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 16px rgba(0,245,196,.3)}
+.logo em{color:var(--accent);font-style:normal}
+.pill{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:var(--surface);border:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:all .3s;flex-shrink:0}
+.dot.on{background:var(--accent);box-shadow:0 0 8px var(--accent);animation:blink 2s infinite}
+.dot.ing{background:#f59e0b;box-shadow:0 0 8px #f59e0b;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+/* TABS */
+.tabs{display:flex;gap:3px;padding:10px 12px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:8px 13px;border-radius:8px;border:1px solid transparent;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--muted);background:transparent;font-family:'Syne',sans-serif}
+.tab.active{background:rgba(0,245,196,.1);border-color:var(--border);color:var(--accent)}
+.tab:hover:not(.active){color:var(--text);background:var(--s2)}
+/* PANELS */
+.main{flex:1;padding:14px;overflow-y:auto}
+.panel{display:none}.panel.active{display:block}
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:4px}
+.card .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+/* ROOM ID */
+.rid{display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:12px;font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;letter-spacing:4px}
+.rid .val{flex:1;color:var(--accent)}
+/* BUTTONS */
+.btn{padding:11px 18px;border-radius:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .2s;font-family:'Syne',sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn-p{background:var(--accent);color:var(--bg)}.btn-p:hover{box-shadow:0 0 18px rgba(0,245,196,.4);transform:translateY(-1px)}
+.btn-s{background:var(--s2);border:1px solid var(--border);color:var(--text)}.btn-s:hover{border-color:var(--accent);color:var(--accent)}
+.btn-d{background:rgba(255,58,110,.12);border:1px solid var(--a3);color:var(--a3)}
+.btn-w{width:100%}
+/* INPUTS */
+input[type=text],textarea{width:100%;padding:11px 14px;border-radius:10px;background:var(--s2);border:1px solid var(--border);color:var(--text);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+input[type=text]:focus,textarea:focus{border-color:var(--accent)}
+input[type=text]::placeholder,textarea::placeholder{color:var(--muted)}
+.row{display:flex;gap:8px;margin-bottom:10px}
+.row input{flex:1}
+/* PEERS */
+.peer-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:var(--s2);border:1px solid var(--border);margin-bottom:8px}
+.avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--a2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;flex-shrink:0}
+.pinfo{flex:1}.pname{font-size:14px;font-weight:600}.psub{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+/* DROP ZONE */
+.drop{border:2px dashed var(--border);border-radius:16px;padding:36px 20px;text-align:center;cursor:pointer;position:relative;background:var(--surface);margin-bottom:14px;transition:all .3s}
+.drop.over{border-color:var(--accent);background:rgba(0,245,196,.05);box-shadow:0 0 20px rgba(0,245,196,.2)}
+.drop input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:42px;margin-bottom:10px}
+.drop h3{font-size:15px;font-weight:700;margin-bottom:5px}
+.drop p{font-size:12px;color:var(--muted)}
+/* FILE ITEMS */
+.fitem{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:8px}
+.fhead{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.ficon{font-size:22px}.fmeta{flex:1;min-width:0}
+.fname{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fsize{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.factions{display:flex;gap:5px;flex-shrink:0}
+.iBtn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--s2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s}
+.iBtn:hover{border-color:var(--accent);background:rgba(0,245,196,.1)}
+.prog{height:4px;border-radius:2px;background:var(--s2);overflow:hidden}
+.progf{height:100%;border-radius:2px;transition:width .3s;background:linear-gradient(90deg,var(--accent),var(--a2))}
+.progl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+/* CHAT */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100dvh - 175px)}
+.msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 0 14px}
+.msg{max-width:82%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.5}
+.msg.me{align-self:flex-end;background:rgba(0,245,196,.15);border:1px solid rgba(0,245,196,.2);border-bottom-right-radius:4px}
+.msg.them{align-self:flex-start;background:var(--s2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.sys{align-self:center;background:transparent;border:none;color:var(--muted);font-size:11px;padding:4px 8px}
+.mmeta{font-size:10px;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.cinput{flex:1;padding:12px 14px;border-radius:12px;resize:none;max-height:120px;font-family:'Syne',sans-serif}
+.csend{width:46px;height:46px;border-radius:12px;background:var(--accent);border:none;cursor:pointer;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.csend:hover{box-shadow:0 0 18px rgba(0,245,196,.4);transform:scale(1.05)}
+/* QR PANEL */
+.qr-box{display:flex;flex-direction:column;align-items:center;padding:8px 0 16px}
+#qrCanvas{border-radius:14px;border:3px solid var(--accent);box-shadow:0 0 24px rgba(0,245,196,.2);display:block}
+.urlbox{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin:12px 0;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);word-break:break-all;cursor:pointer;transition:border-color .2s;width:100%;text-align:left}
+.urlbox:hover{border-color:var(--accent)}
+/* SHARE GRID */
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.sbtn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;border-radius:12px;border:1px solid var(--border);background:var(--s2);cursor:pointer;transition:all .2s;font-family:'Syne',sans-serif}
+.sbtn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.sico{font-size:22px;line-height:1}.slbl{font-size:10px;font-weight:600;color:var(--muted)}
+.sbtn.wa:hover{border-color:#25d366;background:rgba(37,211,102,.1)}
+.sbtn.tg:hover{border-color:#2ca5e0;background:rgba(44,165,224,.1)}
+.sbtn.sm:hover{border-color:#4ade80;background:rgba(74,222,128,.1)}
+.sbtn.em:hover{border-color:#f59e0b;background:rgba(245,158,11,.1)}
+.sbtn.tw:hover{border-color:#1d9bf0;background:rgba(29,155,240,.1)}
+.sbtn.cp:hover{border-color:var(--accent);background:rgba(0,245,196,.1)}
+.sbtn.dl:hover{border-color:var(--a2);background:rgba(124,58,255,.1)}
+.sbtn.mo:hover{border-color:#e879f9;background:rgba(232,121,249,.1)}
+/* SCANNER */
+.scan-frame{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1;max-width:320px;margin:0 auto}
+.scan-frame video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-box{width:62%;height:62%;border:2.5px solid var(--accent);border-radius:14px;box-shadow:0 0 0 9999px rgba(0,0,0,.55),0 0 20px var(--accent);animation:glow 2s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 9999px rgba(0,0,0,.55),0 0 10px var(--accent)}50%{box-shadow:0 0 0 9999px rgba(0,0,0,.55),0 0 28px var(--accent)}}
+.scan-line{position:absolute;left:19%;right:19%;height:2.5px;background:linear-gradient(90deg,transparent,var(--accent),transparent);animation:scanmove 1.8s linear infinite}
+@keyframes scanmove{0%{top:19%}100%{top:81%}}
+/* STATS */
+.sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.scard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+.sval{font-size:20px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace}
+.slb{font-size:11px;color:var(--muted);margin-top:3px}
+/* MISC */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty .ei{font-size:42px;margin-bottom:10px}
+.empty p{font-size:13px}
+.stitle{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:4px 0 10px}
+.badge-r{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(124,58,255,.2);color:var(--a2);border:1px solid rgba(124,58,255,.3)}
+.badge-s{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,245,196,.1);color:var(--accent);border:1px solid rgba(0,245,196,.2)}
+.badge-sending{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.send-prog{margin-top:8px}.send-prog .prog{height:4px;border-radius:2px;background:var(--s2);overflow:hidden}
+.send-prog .progf{height:100%;border-radius:2px;transition:width .2s;background:linear-gradient(90deg,var(--accent),var(--a2))}
+.send-prog .progl{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;font-family:'JetBrains Mono',monospace}
+.badge-warn{font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.spd{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;background:var(--s2);border:1px solid var(--border);margin-bottom:12px;font-family:'JetBrains Mono',monospace;font-size:12px}
+.spdv{color:var(--accent);font-weight:500}
+.xfer{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px;margin-bottom:8px}
+#inst-bar{display:none;align-items:center;gap:10px;padding:10px 16px;background:linear-gradient(135deg,rgba(0,245,196,.07),rgba(124,58,255,.07));border-bottom:1px solid var(--border)}
+#inst-bar.show{display:flex}
+#inst-bar p{flex:1;font-size:12px}
+/* Background warning banner */
+#bg-bar{display:none;align-items:center;gap:8px;padding:8px 14px;background:rgba(245,158,11,.08);border-bottom:1px solid rgba(245,158,11,.2);font-size:11px;color:#f59e0b}
+#bg-bar.show{display:flex}
+.hl{font-weight:700;color:var(--accent)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .3s ease}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{animation:spin 1s linear infinite;display:inline-block}
+.toast-c{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{padding:10px 20px;border-radius:10px;font-size:12px;font-weight:600;background:var(--s2);border:1px solid var(--border);backdrop-filter:blur(20px);color:var(--text);white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:fadeUp .3s ease}
+.toast.ok{border-color:var(--accent);color:var(--accent)}
+.toast.err{border-color:var(--a3);color:var(--a3)}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- INSTALL BAR -->
+<div id="inst-bar">
+  <span>🦁</span><p>Install <span class="hl">LioShare</span> as an app</p>
+  <button class="btn btn-p" id="inst-btn" style="padding:7px 12px;font-size:11px;flex-shrink:0">Install</button>
+  <button onclick="this.closest('#inst-bar').classList.remove('show')" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>
+</div>
+
+<!-- BACKGROUND WARNING BAR -->
+<div id="bg-bar">
+  ⚠️ <span>Tab is backgrounded — transfer may slow. Keep this tab visible for best speed.</span>
+  <button onclick="$('bg-bar').classList.remove('show')" style="background:none;border:none;color:#f59e0b;font-size:16px;cursor:pointer;margin-left:auto">✕</button>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo"><div class="logo-icon">🦁</div>Lio<em>Share</em></div>
+  <div class="pill"><div class="dot" id="sdot"></div><span id="stxt">Offline</span></div>
+</header>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="go('connect')" id="tab-connect">📡 Connect</button>
+  <button class="tab" onclick="go('send')" id="tab-send">📤 Send</button>
+  <button class="tab" onclick="go('recv')" id="tab-recv">📥 Receive</button>
+  <button class="tab" onclick="go('chat')" id="tab-chat">💬 Chat</button>
+  <button class="tab" onclick="go('qr')" id="tab-qr">⬛ QR & Share</button>
+</div>
+
+<div class="main">
+
+<!-- ══ CONNECT ══ -->
+<div class="panel active" id="panel-connect">
+  <div class="card fu">
+    <h2>🦁 Your Room ID</h2>
+    <p class="sub">Share this so others can connect directly to you</p>
+    <div class="rid"><span class="val" id="myId">Loading…</span><button class="btn btn-s" style="padding:6px 12px;font-size:12px" onclick="copyId()">Copy</button></div>
+    <div class="row" style="margin-bottom:0">
+      <button class="btn btn-s" style="flex:1" onclick="go('qr')">⬛ Share QR</button>
+      <button class="btn btn-s" style="flex:1" onclick="newRoom()">🔄 New ID</button>
+    </div>
+  </div>
+  <div class="card fu" style="animation-delay:.08s">
+    <h2>🔗 Join a Room</h2>
+    <p class="sub">Enter a Room ID or scan a QR code to connect</p>
+    <div class="row"><input type="text" id="joinInp" placeholder="Enter Room ID…" maxlength="8" style="text-transform:uppercase;letter-spacing:3px;font-size:16px" oninput="this.value=this.value.toUpperCase()"><button class="btn btn-p" onclick="joinRoom()">Join</button></div>
+    <div class="row" style="margin-bottom:0">
+      <button class="btn btn-s" style="flex:1" onclick="go('qr');setTimeout(openScanner,250)">📷 Scan QR</button>
+      <button class="btn btn-s" style="flex:1" onclick="pasteJoin()">📋 Paste</button>
+    </div>
+  </div>
+  <div class="stitle">Connected Peers</div>
+  <div id="peerList"><div class="empty"><div class="ei">🌐</div><p>No peers yet — share your Room ID!</p></div></div>
+  <div class="stitle" style="margin-top:16px">Session Stats</div>
+  <div class="sgrid2">
+    <div class="scard"><div class="sval" id="stSent">0 B</div><div class="slb">Sent</div></div>
+    <div class="scard"><div class="sval" id="stRecv">0 B</div><div class="slb">Received</div></div>
+    <div class="scard"><div class="sval" id="stSpd">0 B/s</div><div class="slb">Speed</div></div>
+    <div class="scard"><div class="sval" id="stPeers">0</div><div class="slb">Peers</div></div>
+  </div>
+</div>
+
+<!-- ══ SEND ══ -->
+<div class="panel" id="panel-send">
+  <div class="drop" id="dropZ" ondragover="dov(event)" ondragleave="dol()" ondrop="ddr(event)">
+    <input type="file" multiple id="fInp" onchange="fsel(event)">
+    <div class="drop-icon">📂</div>
+    <h3>Drop files or tap to browse</h3>
+    <p>Any file type · Up to 5 GB · Zero server storage</p>
+  </div>
+  <div class="spd" id="spdBar" style="display:none">⚡ <span>Speed:</span><span class="spdv" id="spdVal">0 MB/s</span><span style="margin-left:auto;color:var(--muted);font-size:11px" id="etaTxt"></span></div>
+  <div class="stitle">Queued Files</div>
+  <div id="fQueue"><div class="empty"><div class="ei">📭</div><p>No files queued</p></div></div>
+  <div id="fBtns" style="display:none;margin-top:12px">
+    <button class="btn btn-p btn-w" id="sendAllBtn" onclick="sendAll()">🚀 Send All to Peers</button>
+    <button class="btn btn-s btn-w" onclick="clearQ()" style="margin-top:8px">🗑️ Clear Queue</button>
+  </div>
+</div>
+
+<!-- ══ RECEIVE ══ -->
+<div class="panel" id="panel-recv">
+  <div class="stitle">Active Transfers</div>
+  <div id="activeXfers"><div class="empty"><div class="ei">📥</div><p>Waiting for files…</p></div></div>
+  <div class="stitle" style="margin-top:16px">Received Files</div>
+  <div id="recvList"><div class="empty"><div class="ei">📪</div><p>Nothing received yet</p></div></div>
+</div>
+
+<!-- ══ CHAT ══ -->
+<div class="panel" id="panel-chat">
+  <div class="chat-wrap">
+    <div class="msgs" id="msgs"><div class="msg sys">🦁 LioShare Chat — encrypted via WebRTC</div></div>
+    <div class="row" style="padding-top:12px;border-top:1px solid var(--border);margin-bottom:0">
+      <textarea class="cinput" id="chatInp" placeholder="Type a message…" rows="1" onkeydown="ckd(event)" oninput="arz(this)"></textarea>
+      <button class="csend" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ QR & SHARE ══ -->
+<div class="panel" id="panel-qr">
+  <div class="card fu">
+    <h2>⬛ Your QR Code</h2>
+    <p class="sub">Anyone who scans this joins your room instantly</p>
+    <div class="qr-box">
+      <canvas id="qrCanvas"></canvas>
+    </div>
+    <div class="urlbox" id="urlBox" onclick="copyLink()">Generating link…</div>
+    <div class="stitle">Share on</div>
+    <div class="sgrid">
+      <button class="sbtn wa" onclick="shWA()"><span class="sico">💬</span><span class="slbl">WhatsApp</span></button>
+      <button class="sbtn tg" onclick="shTG()"><span class="sico">✈️</span><span class="slbl">Telegram</span></button>
+      <button class="sbtn sm" onclick="shSMS()"><span class="sico">📱</span><span class="slbl">SMS</span></button>
+      <button class="sbtn em" onclick="shEM()"><span class="sico">📧</span><span class="slbl">Email</span></button>
+      <button class="sbtn tw" onclick="shTW()"><span class="sico">🐦</span><span class="slbl">Twitter</span></button>
+      <button class="sbtn cp" onclick="copyLink()"><span class="sico">🔗</span><span class="slbl">Copy Link</span></button>
+      <button class="sbtn dl" onclick="saveQR()"><span class="sico">💾</span><span class="slbl">Save QR</span></button>
+      <button class="sbtn mo" onclick="nativeShare()"><span class="sico">📤</span><span class="slbl">More…</span></button>
+    </div>
+  </div>
+
+  <div class="card fu" style="animation-delay:.1s">
+    <h2>📷 Scan to Connect</h2>
+    <p class="sub">Point your camera at a LioShare QR code</p>
+    <button class="btn btn-s btn-w" id="scanOpenBtn" onclick="openScanner()">📷 Open Camera Scanner</button>
+    <div id="scanWrap" style="display:none;margin-top:14px">
+      <div class="scan-frame">
+        <video id="scanVid" autoplay playsinline muted></video>
+        <div class="scan-overlay"><div class="scan-box"></div><div class="scan-line"></div></div>
+      </div>
+      <canvas id="scanC" style="display:none"></canvas>
+      <p id="scanStatus" style="text-align:center;font-size:12px;color:var(--muted);margin-top:10px;font-family:'JetBrains Mono',monospace">Scanning… point at QR</p>
+      <button class="btn btn-d btn-w" onclick="stopScanner()" style="margin-top:10px">✕ Stop Scanner</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:14px">
+      <span style="font-size:11px;color:var(--muted);flex-shrink:0">Or enter ID:</span>
+      <input type="text" id="manInp" placeholder="ABCDEF" maxlength="8" style="padding:9px 12px;font-size:14px;letter-spacing:3px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+      <button class="btn btn-p" style="padding:9px 14px;font-size:13px;flex-shrink:0" onclick="manJoin()">→</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+<div class="toast-c" id="toastC"></div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  LIOSHARE v5  —  GitHub Pages optimised
+//  • Proper SW registration (external sw.js)
+//  • Big-file peer disconnect fix (flow control + keepalive during transfer)
+//  • Background tab: Wake Lock API + visibility keepalive + SW ping
+//  • Chunked ACK-based backpressure replacing sleep()
+// ══════════════════════════════════════════════════
+
+const CHUNK  = 128 * 1024;     // 128 KB — smaller chunks = finer backpressure granularity
+const MAXBUF = 4 * 1024 * 1024; // 4 MB high-water mark (was 8 MB — caused disconnect on slow links)
+const LOWBUF = 512 * 1024;      // 512 KB low-water mark resume threshold
+const KEEPALIVE_INTERVAL = 5000; // 5s ping — fast enough to survive most ICE timeouts
+const RECONNECT_WINDOW   = 30000; // 30s window to attempt reconnect before giving up
+
+const ICE = {
+  iceServers:[
+    {urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302',
+           'stun:stun2.l.google.com:19302','stun:stun3.l.google.com:19302',
+           'stun:stun4.l.google.com:19302']},
+    {urls:'stun:stun.cloudflare.com:3478'},
+    {urls:'stun:global.stun.twilio.com:3478'},
+    {urls:['stun:stun.relay.metered.ca:80','stun:stun.relay.metered.ca:443']},
+    {urls:'turn:a.relay.metered.ca:80',                username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:a.relay.metered.ca:80?transport=tcp',  username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:a.relay.metered.ca:443',               username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turns:a.relay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:80',              username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turn:openrelay.metered.ca:443',             username:'openrelayproject',credential:'openrelayproject'},
+    {urls:'turns:openrelay.metered.ca:443',            username:'openrelayproject',credential:'openrelayproject'},
+  ],
+  iceCandidatePoolSize:10,
+  bundlePolicy:'max-bundle',
+  rtcpMuxPolicy:'require',
+  iceTransportPolicy:'all',
+};
+
+// ── State ──
+let myId='', peer=null, conns={};
+let fQueue=[], totalS=0, totalR=0, spdBytes=0, spdT=Date.now();
+let scanStream=null, scanRAF=null, shareUrl='', deferInstall=null;
+let reconnectAttempts=0;
+let wakeLock=null;         // Screen Wake Lock handle
+let swController=null;     // SW registration reference
+let bgKeepaliveTimer=null; // setInterval handle for SW pings when backgrounded
+let activeTransfers=0;     // Count of in-progress sends; used to gate Wake Lock
+
+// ── Utils ──
+const $=id=>document.getElementById(id);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const genId=()=>{const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from({length:6},()=>c[Math.floor(Math.random()*c.length)]).join('');};
+const fmtB=b=>{if(!b||b<0)return'0 B';const k=1024,s=['B','KB','MB','GB','TB'],i=Math.floor(Math.log(Math.max(b,1))/Math.log(k));return(b/Math.pow(k,i)).toFixed(2)+' '+s[i];};
+const fmtSpd=b=>fmtB(b)+'/s';
+const fmtT=s=>{if(!isFinite(s)||s<0)return'—';return s<60?Math.round(s)+'s':Math.floor(s/60)+'m '+Math.round(s%60)+'s';};
+const hId=s=>{let h=0;for(let i=0;i<s.length;i++)h=(Math.imul(31,h)+s.charCodeAt(i))|0;return Math.abs(h)%0xFFFFFFFF;};
+const devName=()=>{const u=navigator.userAgent;return/iPhone/i.test(u)?'iPhone':/iPad/i.test(u)?'iPad':/Android/i.test(u)?'Android':/Mac/i.test(u)?'Mac':'Device';};
+const fIcon=n=>{const e=n.split('.').pop().toLowerCase();return({pdf:'📄',doc:'📝',docx:'📝',txt:'📄',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🎨',webp:'🖼️',svg:'🎨',mp4:'🎬',avi:'🎬',mov:'🎬',mkv:'🎬',webm:'🎬',mp3:'🎵',wav:'🎵',flac:'🎵',aac:'🎵',zip:'📦',rar:'📦','7z':'📦',tar:'📦',gz:'📦',js:'⚡',ts:'⚡',py:'🐍',html:'🌐',css:'🎨',xls:'📊',xlsx:'📊',csv:'📊',apk:'📱',exe:'⚙️'})[e]||'📁';};
+
+// ── Toast ──
+function toast(msg,type='',dur=3500){
+  const c=$('toastC'),t=document.createElement('div');
+  t.className='toast '+(type==='ok'?'ok':type==='err'?'err':'');
+  t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),dur);
+}
+
+// ════════════════════════════════════════
+//  WAKE LOCK — prevent screen/CPU sleep during transfers
+// ════════════════════════════════════════
+async function acquireWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  try{
+    if(wakeLock&&wakeLock.released===false)return; // already held
+    wakeLock=await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release',()=>{wakeLock=null;});
+  }catch(e){/* denied or not supported — safe to ignore */}
+}
+
+function releaseWakeLock(){
+  if(wakeLock&&wakeLock.released===false){
+    wakeLock.release().catch(()=>{});
+    wakeLock=null;
+  }
+}
+
+// Re-acquire after page becomes visible again (OS releases lock on hide)
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='visible'){
+    $('bg-bar').classList.remove('show');
+    stopBgKeepalive();
+    if(activeTransfers>0)await acquireWakeLock();
+    // Reconnect if peer went offline while hidden
+    if(peer&&peer.disconnected&&!peer.destroyed){
+      try{peer.reconnect();}catch(e){initPeer(myId);}
+    }
+  }else{
+    // Tab hidden — warn user if transfer in progress
+    if(activeTransfers>0){
+      $('bg-bar').classList.add('show');
+      startBgKeepalive();
+    }
+  }
+});
+
+// ════════════════════════════════════════
+//  SW KEEPALIVE — ping SW every 20s when backgrounded
+//  Prevents browser from suspending the SW and ICE timers
+// ════════════════════════════════════════
+function startBgKeepalive(){
+  if(bgKeepaliveTimer)return;
+  bgKeepaliveTimer=setInterval(()=>{
+    if(swController){
+      try{swController.postMessage('KEEPALIVE');}catch(e){}
+    }
+    // Also ping all connected peers to keep ICE alive
+    for(const c of Object.values(conns)){
+      try{c.send(JSON.stringify({t:'ping'}));}catch(e){}
+    }
+  },20000);
+}
+
+function stopBgKeepalive(){
+  if(bgKeepaliveTimer){clearInterval(bgKeepaliveTimer);bgKeepaliveTimer=null;}
+}
+
+// ── Peer init ──
+function initPeer(id){
+  if(peer){try{peer.destroy();}catch(e){}}
+  reconnectAttempts=0;
+  myId=id||genId(); $('myId').textContent=myId;
+  setStatus('ing');
+  loadJS('https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js',startPeer,()=>{
+    loadJS('https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',startPeer,()=>{
+      setStatus('off'); toast('❌ Network error loading library','err');
+    });
+  });
+}
+
+function loadJS(src,ok,fail){
+  // Reuse already-loaded script
+  if(document.querySelector(`script[src="${src}"]`)&&window.Peer){ok();return;}
+  const s=document.createElement('script');s.src=src;
+  s.onload=ok; s.onerror=fail||ok;
+  document.head.appendChild(s);
+}
+
+function startPeer(){
+  if(!window.Peer){toast('❌ PeerJS unavailable','err');setStatus('off');return;}
+  try{
+    peer=new Peer(myId,{
+      host:'0.peerjs.com',port:443,path:'/',secure:true,
+      config:ICE,debug:0,
+      pingInterval:KEEPALIVE_INTERVAL, // PeerJS-level heartbeat
+    });
+    peer.on('open',id=>{
+      myId=id;$('myId').textContent=myId;
+      reconnectAttempts=0;
+      setStatus('on');
+      buildUrl();drawQR();
+      toast('🦁 Ready — Room: '+myId,'ok');
+      autoJoinFromUrl();
+    });
+    peer.on('connection',conn=>{onConn(conn);});
+    peer.on('error',err=>{
+      console.warn('[LioShare]',err.type,err.message);
+      if(err.type==='peer-unavailable')toast('❌ Room not found — check ID','err');
+      else if(err.type==='unavailable-id')initPeer(genId());
+      else if(['network','server-error','socket-error','socket-closed'].includes(err.type)){
+        setStatus('off');
+        const delay=Math.min(1000*Math.pow(2,reconnectAttempts),30000);
+        reconnectAttempts++;
+        setTimeout(()=>initPeer(myId),delay);
+      }
+    });
+    peer.on('disconnected',()=>{
+      setStatus('ing');
+      if(reconnectAttempts<8){
+        const delay=Math.min(2000*Math.pow(1.5,reconnectAttempts),20000);
+        reconnectAttempts++;
+        setTimeout(()=>{
+          if(peer&&!peer.destroyed){
+            try{peer.reconnect();}catch(e){initPeer(myId);}
+          }
+        },delay);
+      }else{
+        // All retries exhausted — hard reinit
+        toast('🔄 Reconnecting…','');
+        initPeer(myId);
+      }
+    });
+    peer.on('close',()=>setStatus('off'));
+  }catch(e){setStatus('off');toast('❌ Failed to start peer','err');}
+}
+
+// ── Join room ──
+function joinRoom(){
+  const id=$('joinInp').value.trim().toUpperCase();
+  if(id.length<4){toast('Enter a valid Room ID (4+ chars)','err');return;}
+  if(!peer||peer.destroyed){toast('Not ready yet — please wait','err');return;}
+  if(conns[id]){toast('Already connected to '+id);return;}
+  toast('⏳ Connecting to '+id+'…');
+  const conn=peer.connect(id,{reliable:true,serialization:'raw'});
+  if(conn){onConn(conn);$('joinInp').value='';}
+}
+
+// ── Connection handler ──
+function onConn(conn){
+  conn._name='';conn._rBufs={};conn._rMeta={};
+  // Connection timeout — if not open within 15s, clean up
+  const openTimer=setTimeout(()=>{
+    if(!conns[conn.peer]){
+      try{conn.close();}catch(e){}
+      toast('⚠️ Connection timed out','err');
+    }
+  },15000);
+
+  conn.on('open',()=>{
+    clearTimeout(openTimer);
+    conns[conn.peer]=conn;
+    renderPeers();updateStats();
+    conn.send(JSON.stringify({t:'hello',name:devName(),id:myId}));
+    toast('✅ Connected to peer!','ok');
+  });
+  conn.on('data',data=>onData(conn,data));
+  conn.on('close',()=>{
+    delete conns[conn.peer];renderPeers();updateStats();
+    toast('🔌 Peer disconnected');
+  });
+  conn.on('error',e=>{
+    console.warn('conn err',e);
+    delete conns[conn.peer];renderPeers();updateStats();
+  });
+}
+
+// ── Data handler ──
+function onData(conn,data){
+  if(data instanceof Uint8Array||ArrayBuffer.isView(data)){
+    data=data.buffer.slice(data.byteOffset,data.byteOffset+data.byteLength);
+  }
+  if(data instanceof ArrayBuffer){
+    const view=new DataView(data);
+    const type=view.getUint8(0);
+    const mId=view.getUint32(1,false);
+    const cIdx=view.getUint32(5,false);
+    const pay=data.slice(9);
+    if(type===1){
+      const meta=JSON.parse(new TextDecoder().decode(pay));
+      conn._rMeta[mId]=meta;
+      conn._rBufs[mId]={chunks:{},got:0,total:meta.chunks,bytesGot:0};
+      showXfer(mId,meta,conn.peer);
+    }else if(type===2){
+      gotChunk(conn,mId,cIdx,pay);
+    }
+    return;
+  }
+  if(data instanceof Blob){
+    data.arrayBuffer()
+      .then(ab=>onData(conn,ab))
+      .catch(()=>data.text().then(t=>onData(conn,t)));
+    return;
+  }
+  if(typeof data==='string'){
+    try{
+      const msg=JSON.parse(data);
+      if(msg.t==='hello'){conn._name=msg.name;renderPeers();}
+      else if(msg.t==='chat'){addMsg(msg.text,conn.peer,false);}
+      else if(msg.t==='done'){toast('✅ '+msg.name+' delivered!','ok');}
+      else if(msg.t==='ping'){
+        // Reply with pong to confirm we're alive
+        try{conn.send(JSON.stringify({t:'pong',ts:msg.ts||Date.now()}));}catch(e){}
+      }
+      else if(msg.t==='pong'){/* latency confirmation */}
+    }catch(e){}
+  }
+}
+
+// ════════════════════════════════════════
+//  FLOW CONTROL — event-driven backpressure
+//  Key fix for "peer disconnects on big file":
+//  We never exceed MAXBUF bytes in the DataChannel queue.
+//  Smaller CHUNK (128KB) + lower MAXBUF (4MB) prevents
+//  the send buffer from overwhelming the receiver's TCP stack,
+//  which causes ICE to timeout and drop the connection.
+// ════════════════════════════════════════
+function waitForBuffer(conn){
+  return new Promise(res=>{
+    const dc=conn.dataChannel;
+    // If no DC reference or buffer is fine, proceed immediately
+    if(!dc){res();return;}
+    if(dc.bufferedAmount<=MAXBUF){res();return;}
+    dc.bufferedAmountLowThreshold=LOWBUF;
+    const onLow=()=>{dc.removeEventListener('bufferedamountlow',onLow);res();};
+    dc.addEventListener('bufferedamountlow',onLow);
+    // Safety net: 8s hard timeout — prevents infinite stall if event never fires
+    setTimeout(()=>{dc.removeEventListener('bufferedamountlow',onLow);res();},8000);
+  });
+}
+
+// ── Keepalive during transfer ──
+// Sends a ping on the OTHER DataChannel direction every KEEPALIVE_INTERVAL ms.
+// This keeps the ICE connection alive even when only one side is sending data,
+// which is exactly when "peer disconnects on big file" happens — the receiver
+// goes silent for too long and ICE declares the connection dead.
+function startTransferKeepalive(conn){
+  if(conn._kaTimer)return; // already running
+  conn._kaTimer=setInterval(()=>{
+    try{conn.send(JSON.stringify({t:'ping',ts:Date.now()}));}
+    catch(e){clearInterval(conn._kaTimer);delete conn._kaTimer;}
+  },KEEPALIVE_INTERVAL);
+}
+
+function stopTransferKeepalive(conn){
+  if(conn._kaTimer){clearInterval(conn._kaTimer);delete conn._kaTimer;}
+}
+
+// ── Send file ──
+function fsel(e){addQ([...e.target.files]);e.target.value='';}
+function dov(e){e.preventDefault();$('dropZ').classList.add('over');}
+function dol(){$('dropZ').classList.remove('over');}
+function ddr(e){e.preventDefault();dol();addQ([...e.dataTransfer.files]);}
+
+function addQ(files){
+  let n=0;
+  for(const f of files){
+    if(f.size>5*1024*1024*1024){toast('❌ '+f.name+' > 5 GB','err');continue;}
+    fQueue.push({f,id:Date.now()+Math.random(),uid:'q'+Math.random().toString(36).slice(2,8)});n++;
+  }
+  if(n){renderQ();toast('📂 '+n+' file(s) added');}
+}
+
+function renderQ(){
+  const el=$('fQueue');
+  if(!fQueue.length){el.innerHTML='<div class="empty"><div class="ei">📭</div><p>No files queued</p></div>';$('fBtns').style.display='none';return;}
+  el.innerHTML=fQueue.map((it,i)=>`<div class="fitem fu" id="qi-${it.uid}"><div class="fhead"><span class="ficon">${fIcon(it.f.name)}</span><div class="fmeta"><div class="fname">${esc(it.f.name)}</div><div class="fsize">${fmtB(it.f.size)}</div></div><div class="factions"><span class="badge-s" id="qb-${it.uid}">Queued</span><button class="iBtn" id="qrm-${it.uid}" onclick="rmQ(${i})">🗑️</button></div></div><div class="send-prog" id="qp-${it.uid}" style="display:none"><div class="prog"><div class="progf" id="qpf-${it.uid}" style="width:0%"></div></div><div class="progl"><span id="qps-${it.uid}">0 B</span><span id="qpp-${it.uid}">0%</span><span id="qpe-${it.uid}">—</span></div></div></div>`).join('');
+  $('fBtns').style.display='block';
+}
+function rmQ(i){fQueue.splice(i,1);renderQ();}
+function clearQ(){fQueue=[];renderQ();}
+
+async function sendAll(){
+  const pids=Object.keys(conns);
+  if(!pids.length){toast('❌ No peers connected!','err');return;}
+  if(!fQueue.length){toast('No files queued','err');return;}
+  const btn=$('sendAllBtn');btn.disabled=true;btn.innerHTML='<span class="spin">⏳</span> Sending…';
+  for(const it of fQueue) for(const pid of pids) await sendFile(it.f,conns[pid],it.uid);
+  fQueue=[];renderQ();btn.disabled=false;btn.innerHTML='🚀 Send All to Peers';
+}
+
+async function sendFile(file,conn,uid){
+  return new Promise(async res=>{
+    const tid=Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    const totalChunks=Math.ceil(file.size/CHUNK);
+    const mid=hId(tid);
+
+    // Acquire wake lock + start keepalive for the duration of this transfer
+    activeTransfers++;
+    await acquireWakeLock();
+    startTransferKeepalive(conn);
+
+    // Send meta packet (type=1)
+    const metaJSON=new TextEncoder().encode(JSON.stringify({
+      name:file.name,size:file.size,type:file.type,chunks:totalChunks,tid
+    }));
+    sendPkt(conn,1,mid,0,metaJSON);
+    await sleep(150);
+
+    // Show sender progress bar
+    const progWrap=uid?$('qp-'+uid):null;
+    const progFill=uid?$('qpf-'+uid):null;
+    const progSent=uid?$('qps-'+uid):null;
+    const progPct =uid?$('qpp-'+uid):null;
+    const progEta =uid?$('qpe-'+uid):null;
+    const badge   =uid?$('qb-'+uid):null;
+    const rmBtn   =uid?$('qrm-'+uid):null;
+    if(progWrap){progWrap.style.display='block';}
+    if(badge){badge.className='badge-sending';badge.textContent='Sending…';}
+    if(rmBtn){rmBtn.style.display='none';}
+
+    // Global speed bar (keep for overall session stats)
+    const bar=$('spdBar'),spd=$('spdVal'),eta=$('etaTxt');
+    bar.style.display='flex';
+    let sent=0,lastB=0,lastT=Date.now();
+
+    for(let i=0;i<totalChunks;i++){
+      if(!conns[conn.peer]){
+        toast('❌ Peer disconnected during transfer','err');
+        break;
+      }
+      await waitForBuffer(conn);
+      const start=i*CHUNK;
+      const chunk=await file.slice(start,Math.min(start+CHUNK,file.size)).arrayBuffer();
+      sendPkt(conn,2,mid,i,new Uint8Array(chunk));
+      sent+=chunk.byteLength;totalS+=chunk.byteLength;
+
+      // Update per-file sender progress bar
+      const pct=sent/file.size;
+      if(progFill) progFill.style.width=(pct*100).toFixed(1)+'%';
+      if(progSent) progSent.textContent=fmtB(sent);
+      if(progPct)  progPct.textContent=(pct*100).toFixed(0)+'%';
+
+      const now=Date.now();
+      if(now-lastT>400){
+        const bps=(sent-lastB)/((now-lastT)/1000);
+        lastB=sent;lastT=now;
+        if(bps>0){
+          spd.textContent=fmtSpd(bps);
+          const remaining=fmtT((file.size-sent)/bps);
+          eta.textContent='ETA: '+remaining;
+          if(progEta) progEta.textContent='ETA '+remaining;
+          $('stSpd').textContent=fmtSpd(bps);
+        }
+        $('stSent').textContent=fmtB(totalS);
+      }
+    }
+
+    // Mark sender card as done
+    if(progFill){progFill.style.width='100%';progFill.style.background='var(--accent)';}
+    if(progSent) progSent.textContent=fmtB(file.size);
+    if(progPct)  progPct.textContent='100%';
+    if(progEta)  progEta.textContent='✅ Done';
+    if(badge){badge.className='badge-s';badge.textContent='✅ Sent';}
+
+    // Cleanup
+    stopTransferKeepalive(conn);
+    activeTransfers=Math.max(0,activeTransfers-1);
+    if(activeTransfers===0)releaseWakeLock();
+
+    try{conn.send(JSON.stringify({t:'done',name:file.name,tid}));}catch(e){}
+    bar.style.display='none';
+    toast('✅ Sent: '+file.name,'ok');
+    res();
+  });
+}
+
+function sendPkt(conn,type,mid,cidx,pay){
+  const buf=new ArrayBuffer(9+pay.byteLength);
+  const v=new DataView(buf);
+  v.setUint8(0,type);v.setUint32(1,mid,false);v.setUint32(5,cidx,false);
+  new Uint8Array(buf,9).set(new Uint8Array(pay.buffer||pay));
+  try{conn.send(buf);}catch(e){console.warn('send err',e);}
+}
+
+// ── Receive file ──
+function showXfer(mid,meta,pid){
+  const c=$('activeXfers');
+  const em=c.querySelector('.empty');if(em)em.remove();
+  const d=document.createElement('div');d.className='xfer fu';d.id='xf-'+mid;
+  d.innerHTML=`<div class="fhead"><span class="ficon">${fIcon(meta.name)}</span><div class="fmeta"><div class="fname">${esc(meta.name)}</div><div class="fsize">${fmtB(meta.size)} from ${pid.slice(0,6)}…</div></div><span class="badge-r">Receiving</span></div><div class="prog"><div class="progf" id="pb-${mid}" style="width:0%"></div></div><div class="progl"><span id="pb2-${mid}">0 B</span><span id="pb3-${mid}">0%</span></div>`;
+  c.appendChild(d);go('recv');
+}
+
+function gotChunk(conn,mid,cidx,pay){
+  const st=conn._rBufs[mid],meta=conn._rMeta[mid];
+  if(!st||!meta)return;
+  if(st.chunks[cidx]!==undefined)return; // deduplicate
+  st.chunks[cidx]=pay.slice(0);
+  st.got++;st.bytesGot+=pay.byteLength;
+  totalR+=pay.byteLength;$('stRecv').textContent=fmtB(totalR);
+  const pct=st.got/st.total;
+  const pb=$('pb-'+mid);if(pb)pb.style.width=(pct*100).toFixed(1)+'%';
+  const pb2=$('pb2-'+mid);if(pb2)pb2.textContent=fmtB(st.bytesGot);
+  const pb3=$('pb3-'+mid);if(pb3)pb3.textContent=(pct*100).toFixed(0)+'%';
+  if(st.got>=st.total)assembleFile(conn,mid,meta);
+}
+
+async function assembleFile(conn,mid,meta){
+  const st=conn._rBufs[mid];
+  const chunks=[];
+  for(let i=0;i<meta.chunks;i++)if(st.chunks[i])chunks.push(st.chunks[i]);
+  const blob=new Blob(chunks,{type:meta.type||'application/octet-stream'});
+  const url=URL.createObjectURL(blob);
+
+  const list=$('recvList');const em=list.querySelector('.empty');if(em)em.remove();
+  const d=document.createElement('div');d.className='fitem fu';
+  d.innerHTML=`<div class="fhead"><span class="ficon">${fIcon(meta.name)}</span><div class="fmeta"><div class="fname">${esc(meta.name)}</div><div class="fsize">${fmtB(meta.size)}</div></div><div class="factions"><span class="badge-r">✅ Done</span><a href="${url}" download="${esc(meta.name)}"><button class="iBtn">💾</button></a><button class="iBtn" onclick="window.open('${url}')">👁️</button></div></div>`;
+  list.appendChild(d);
+
+  const a=document.createElement('a');a.href=url;a.download=meta.name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+
+  const xf=$('xf-'+mid);if(xf)xf.remove();
+  delete conn._rBufs[mid];delete conn._rMeta[mid];
+  toast('✅ Received: '+meta.name,'ok');
+  try{conn.send(JSON.stringify({t:'done',name:meta.name}));}catch(e){}
+}
+
+// ── Chat ──
+function sendMsg(){
+  const inp=$('chatInp'),text=inp.value.trim();if(!text)return;
+  if(!Object.keys(conns).length){toast('❌ No peers connected','err');return;}
+  for(const c of Object.values(conns)){try{c.send(JSON.stringify({t:'chat',text}));}catch(e){}}
+  addMsg(text,myId,true);inp.value='';inp.style.height='auto';
+}
+function addMsg(text,from,me){
+  const c=$('msgs');const d=document.createElement('div');
+  d.className='msg fu '+(me?'me':'them');
+  d.innerHTML=esc(text)+`<div class="mmeta">${me?'You':from.slice(0,6)+'…'} · ${new Date().toLocaleTimeString()}</div>`;
+  c.appendChild(d);c.scrollTop=c.scrollHeight;
+  if(!me){const t=$('tab-chat');if(!t.classList.contains('active'))t.textContent='💬 Chat 🔴';}
+}
+function ckd(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}}
+function arz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+
+// ════════════════════════════════════════
+//  QR CODE
+// ════════════════════════════════════════
+function buildUrl(){
+  const base=location.href.split('?')[0].split('#')[0];
+  shareUrl=base+'?room='+myId;
+  $('urlBox').textContent=shareUrl;
+  return shareUrl;
+}
+
+function drawQR(){
+  buildUrl();
+  const canvas=$('qrCanvas');
+  const W=Math.min(window.innerWidth-80,240);
+  canvas.width=W;canvas.height=W;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#111118';ctx.fillRect(0,0,W,W);
+  ctx.fillStyle='#6b6b8a';ctx.font='13px Syne,Arial';ctx.textAlign='center';
+  ctx.fillText('Generating…',W/2,W/2);
+
+  const img=new Image();
+  img.crossOrigin='anonymous';
+  const encodedUrl=encodeURIComponent(shareUrl);
+  img.src=`https://api.qrserver.com/v1/create-qr-code/?size=${W}x${W}&data=${encodedUrl}&color=00f5c4&bgcolor=111118&margin=8&ecc=M`;
+  img.onload=()=>{
+    ctx.fillStyle='#111118';ctx.fillRect(0,0,W,W);
+    ctx.drawImage(img,0,0,W,W);
+    addLionLogo(canvas,W);
+  };
+  img.onerror=()=>{
+    loadJSQ('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',()=>{
+      if(window.QRCode){
+        const tmp=document.createElement('div');tmp.style.cssText='position:fixed;left:-9999px;top:-9999px';document.body.appendChild(tmp);
+        try{
+          new QRCode(tmp,{text:shareUrl,width:W,height:W,colorDark:'#00f5c4',colorLight:'#111118',correctLevel:QRCode.CorrectLevel.M});
+          setTimeout(()=>{
+            const el=tmp.querySelector('canvas')||tmp.querySelector('img');
+            if(el){ctx.fillStyle='#111118';ctx.fillRect(0,0,W,W);ctx.drawImage(el,0,0,W,W);addLionLogo(canvas,W);}
+            document.body.removeChild(tmp);
+          },400);
+        }catch(e){document.body.removeChild(tmp);fallbackQR(ctx,W);}
+      }else{fallbackQR(ctx,W);}
+    });
+  };
+}
+
+function loadJSQ(src,cb){
+  if(document.querySelector('script[data-qr]')){cb();return;}
+  const s=document.createElement('script');s.src=src;s.dataset.qr='1';s.onload=cb;s.onerror=()=>fallbackQR(null,0);document.head.appendChild(s);
+}
+
+function addLionLogo(canvas,W){
+  const ctx=canvas.getContext('2d');
+  const cx=W/2,cy=W/2,r=W*0.09;
+  ctx.fillStyle='#111118';ctx.beginPath();ctx.arc(cx,cy,r+5,0,Math.PI*2);ctx.fill();
+  ctx.font=`${r*1.5}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('🦁',cx,cy+1);ctx.textBaseline='alphabetic';
+}
+
+function fallbackQR(ctx,W){
+  if(!ctx)return;
+  ctx.fillStyle='#111118';ctx.fillRect(0,0,W,W);
+  [[10,10],[W-30,10],[10,W-30]].forEach(([x,y])=>{
+    ctx.strokeStyle='#00f5c4';ctx.lineWidth=3;ctx.strokeRect(x,y,20,20);
+    ctx.fillStyle='#00f5c4';ctx.fillRect(x+5,y+5,10,10);
+  });
+  ctx.fillStyle='#00f5c4';ctx.font=`bold ${W*0.075}px Syne,Arial`;ctx.textAlign='center';
+  ctx.fillText('🦁 LioShare',W/2,W/2-10);
+  ctx.font=`bold ${W*0.095}px JetBrains Mono,monospace`;
+  ctx.fillText(myId,W/2,W/2+16);
+  ctx.fillStyle='#6b6b8a';ctx.font=`${W*0.048}px Arial`;
+  ctx.fillText('Open link & enter Room ID',W/2,W/2+36);
+}
+
+function saveQR(){
+  const src=$('qrCanvas');
+  const out=document.createElement('canvas');out.width=src.width+60;out.height=src.height+80;
+  const ctx=out.getContext('2d');
+  ctx.fillStyle='#0a0a0f';ctx.fillRect(0,0,out.width,out.height);
+  ctx.strokeStyle='rgba(0,245,196,.3)';ctx.lineWidth=1;ctx.strokeRect(1,1,out.width-2,out.height-2);
+  ctx.drawImage(src,30,20);
+  ctx.fillStyle='#00f5c4';ctx.font='bold 14px Syne,Arial';ctx.textAlign='center';
+  ctx.fillText('🦁 LioShare · Room: '+myId,out.width/2,src.height+48);
+  ctx.fillStyle='#6b6b8a';ctx.font='10px JetBrains Mono,monospace';
+  ctx.fillText(shareUrl,out.width/2,src.height+64);
+  const a=document.createElement('a');a.href=out.toDataURL('image/png');a.download='lioshare-'+myId+'.png';a.click();
+  toast('💾 QR saved!','ok');
+}
+
+// ── Share ──
+function sText(){return`🦁 Join my LioShare room for instant P2P file sharing!\n\nRoom ID: ${myId}\nLink: ${shareUrl}\n\nNo apps needed — just tap the link!`;}
+function enc(s){return encodeURIComponent(s);}
+function shWA(){window.open('https://api.whatsapp.com/send?text='+enc(sText()),'_blank');}
+function shTG(){window.open('https://t.me/share/url?url='+enc(shareUrl)+'&text='+enc('🦁 Join my LioShare room!\nRoom: '+myId),'_blank');}
+function shSMS(){location.href='sms:?body='+enc('🦁 LioShare room: '+shareUrl+' — Room ID: '+myId);}
+function shEM(){location.href='mailto:?subject='+enc('LioShare Room Invite')+'&body='+enc(sText());}
+function shTW(){window.open('https://twitter.com/intent/tweet?text='+enc('🦁 Fast P2P file sharing, no servers! '+shareUrl),'_blank');}
+function copyLink(){copyTxt(shareUrl);toast('🔗 Link copied!','ok');}
+function nativeShare(){if(navigator.share){navigator.share({title:'LioShare Room',text:'Join my LioShare room!',url:shareUrl}).catch(()=>copyLink());}else copyLink();}
+function copyTxt(t){if(navigator.clipboard){navigator.clipboard.writeText(t).catch(()=>fbCopy(t));}else fbCopy(t);}
+function fbCopy(t){const e=document.createElement('textarea');e.value=t;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e);}
+function copyId(){copyTxt(myId);toast('📋 Room ID copied!','ok');}
+
+// ── QR Scanner ──
+async function openScanner(){
+  const wrap=$('scanWrap'),vid=$('scanVid');
+  try{
+    scanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+    vid.srcObject=scanStream;await vid.play();
+    wrap.style.display='block';$('scanOpenBtn').style.display='none';
+    $('scanStatus').textContent='Scanning… point at QR code';
+    runScanLoop(vid);
+  }catch(e){
+    toast('❌ Camera access denied','err');
+    $('scanStatus').textContent='Camera blocked — paste Room ID below';
+  }
+}
+
+function stopScanner(){
+  if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;}
+  if(scanRAF){cancelAnimationFrame(scanRAF);scanRAF=null;}
+  $('scanWrap').style.display='none';$('scanOpenBtn').style.display='block';
+}
+
+async function runScanLoop(vid){
+  if(window.BarcodeDetector){
+    const det=new BarcodeDetector({formats:['qr_code']});
+    const loop=async()=>{
+      if(!scanStream)return;
+      try{const codes=await det.detect(vid);if(codes.length){onQR(codes[0].rawValue);return;}}catch(e){}
+      scanRAF=requestAnimationFrame(loop);
+    };
+    scanRAF=requestAnimationFrame(loop);return;
+  }
+  await new Promise(res=>{
+    if(window.jsQR){res();return;}
+    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';s.onload=res;s.onerror=res;document.head.appendChild(s);
+  });
+  const sc=$('scanC'),ctx=sc.getContext('2d');
+  const loop=()=>{
+    if(!scanStream)return;
+    if(vid.readyState===vid.HAVE_ENOUGH_DATA){
+      sc.width=vid.videoWidth;sc.height=vid.videoHeight;
+      ctx.drawImage(vid,0,0);
+      if(window.jsQR){
+        const d=ctx.getImageData(0,0,sc.width,sc.height);
+        const code=jsQR(d.data,d.width,d.height,{inversionAttempts:'dontInvert'});
+        if(code){onQR(code.data);return;}
+      }
+    }
+    scanRAF=requestAnimationFrame(loop);
+  };
+  scanRAF=requestAnimationFrame(loop);
+}
+
+function onQR(val){
+  stopScanner();toast('✅ QR detected!','ok');
+  $('scanStatus').textContent='✅ Connected!';
+  try{
+    const u=new URL(val),r=u.searchParams.get('room');
+    if(r){doConnect(r);return;}
+  }catch(e){}
+  if(val&&val.length>=4)doConnect(val.trim().toUpperCase());
+}
+
+function doConnect(roomId){
+  $('joinInp').value=roomId.toUpperCase();
+  go('connect');
+  setTimeout(joinRoom,400);
+}
+
+function manJoin(){
+  const v=$('manInp').value.trim().toUpperCase();
+  if(v)doConnect(v);
+}
+
+function autoJoinFromUrl(){
+  const room=new URLSearchParams(location.search).get('room');
+  if(room&&room!==myId){setTimeout(()=>{toast('🔗 Auto-joining room: '+room);doConnect(room);},600);}
+}
+
+// ── UI ──
+function go(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  $('tab-'+name).classList.add('active');
+  $('panel-'+name).classList.add('active');
+  if(name==='chat')$('tab-chat').textContent='💬 Chat';
+  if(name==='qr'&&myId){buildUrl();drawQR();}
+}
+
+function setStatus(s){
+  const d=$('sdot'),t=$('stxt');
+  d.className='dot';
+  if(s==='on'){d.classList.add('on');t.textContent='Online';}
+  else if(s==='ing'){d.classList.add('ing');t.textContent='Connecting…';}
+  else t.textContent='Offline';
+}
+
+function renderPeers(){
+  const el=$('peerList'),pids=Object.keys(conns);
+  if(!pids.length){el.innerHTML='<div class="empty"><div class="ei">🌐</div><p>No peers — share your Room ID!</p></div>';return;}
+  el.innerHTML=pids.map(pid=>{
+    const c=conns[pid],n=c._name||pid.slice(0,6)+'…';
+    return`<div class="peer-item fu"><div class="avatar">${n[0].toUpperCase()}</div><div class="pinfo"><div class="pname">${esc(n)}</div><div class="psub">${pid.slice(0,12)}…</div></div><div class="dot on" style="flex-shrink:0"></div><button class="iBtn" onclick="quickSend('${pid}')" title="Send">📤</button></div>`;
+  }).join('');
+}
+
+function quickSend(pid){
+  const inp=document.createElement('input');inp.type='file';inp.multiple=true;
+  inp.onchange=async e=>{
+    for(const f of [...e.target.files]){
+      const uid='q'+Math.random().toString(36).slice(2,8);
+      await sendFile(f,conns[pid],uid);
+    }
+  };
+  inp.click();
+}
+
+function updateStats(){$('stPeers').textContent=Object.keys(conns).length;}
+function newRoom(){if(Object.keys(conns).length&&!confirm('Disconnect all peers?'))return;conns={};initPeer(genId());}
+function pasteJoin(){
+  if(navigator.clipboard){
+    navigator.clipboard.readText().then(t=>{if(t){$('joinInp').value=t.trim().toUpperCase();joinRoom();}}).catch(()=>toast('Paste ID in the input','err'));
+  }
+}
+
+// ── Speed meter ──
+setInterval(()=>{
+  const now=Date.now(),el=(now-spdT)/1000;
+  if(el>0){const bps=(totalS+totalR-spdBytes)/el;spdBytes=totalS+totalR;spdT=now;if(bps>50)$('stSpd').textContent=fmtSpd(bps);}
+},1000);
+
+// ── Heartbeat (connection health monitor) ──
+// Runs every KEEPALIVE_INTERVAL. Different from transfer keepalive:
+// this removes stale peers from conns{} if they stop responding.
+setInterval(()=>{
+  for(const[pid,c] of Object.entries(conns)){
+    try{c.send(JSON.stringify({t:'ping',ts:Date.now()}));}
+    catch(e){delete conns[pid];renderPeers();updateStats();}
+  }
+},KEEPALIVE_INTERVAL);
+
+// ── PWA install ──
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferInstall=e;$('inst-bar').classList.add('show');
+});
+$('inst-btn').addEventListener('click',()=>{
+  if(deferInstall){
+    deferInstall.prompt();
+    deferInstall.userChoice.then(r=>{
+      if(r.outcome==='accepted')toast('🎉 LioShare installed!','ok');
+      deferInstall=null;$('inst-bar').classList.remove('show');
+    });
+  }
+});
+
+// ════════════════════════════════════════
+//  SERVICE WORKER — GitHub Pages compatible
+//  External sw.js at repo root = correct scope.
+//  Blob URL trick from v4 breaks on GH Pages:
+//  SW scripts from blob: origin can't control
+//  pages on https://user.github.io/ origin.
+// ════════════════════════════════════════
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js',{scope:'./'})
+    .then(reg=>{
+      swController=reg.active||reg.installing||reg.waiting;
+      // Update swController if a new SW activates
+      reg.addEventListener('updatefound',()=>{
+        const sw=reg.installing;
+        sw.addEventListener('statechange',()=>{
+          if(sw.state==='activated')swController=sw;
+        });
+      });
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{
+        swController=navigator.serviceWorker.controller;
+      });
+    })
+    .catch(e=>console.warn('SW registration failed:',e));
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded',()=>initPeer());
+</script>
+</body>
+</html>
