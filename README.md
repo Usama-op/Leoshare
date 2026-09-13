@@ -123,7 +123,7 @@ Once installed, it launches full-screen with no browser chrome, and the Service 
 
 ## 🖼️ Screenshots
 
-> (connect.png)
+> (./assets/connect.png)
 
 ## 🛠️ Tech Stack
 
