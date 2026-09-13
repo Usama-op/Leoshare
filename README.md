@@ -124,6 +124,7 @@ Once installed, it launches full-screen with no browser chrome, and the Service 
 ## 🖼️ Screenshots
 
 ![Connection Screenshot](./assets/connect.png)
+![share Screenshot](./assets/share.png)
 
 ## 🛠️ Tech Stack
 
