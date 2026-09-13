@@ -123,7 +123,7 @@ Once installed, it launches full-screen with no browser chrome, and the Service 
 
 ## 🖼️ Screenshots
 
-> _Add screenshots or a short GIF of the Connect, Send, and Chat screens here — visuals significantly boost repo engagement._
+> (connect.png)
 
 ## 🛠️ Tech Stack
 
