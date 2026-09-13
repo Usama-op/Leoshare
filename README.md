@@ -121,7 +121,9 @@ LioShare is a full Progressive Web App:
 
 Once installed, it launches full-screen with no browser chrome, and the Service Worker keeps the shell available even with a flaky connection.
 
-## 🖼️ Screenshots(./assets/connect.png)
+## 🖼️ Screenshots
+
+![Connection Screenshot](./assets/connect.png)
 
 ## 🛠️ Tech Stack
 
